@@ -5,12 +5,14 @@
     "version": "2.6.0",
     "release_date": "2026-01-20",
     "author": "Jensfrank",
-    "repository": "https://github.com/everett7623/vps_scripts"
+    "upstream_repository": "https://github.com/everett7623/vps_scripts",
+    "fork_maintainer": "cyhfvg",
+    "repository": "https://github.com/cyhfvg/vps_scripts"
   },
   "update": {
-    "check_url": "https://raw.githubusercontent.com/everett7623/vps_scripts/main/version.json",
-    "script_url": "https://raw.githubusercontent.com/everett7623/vps_scripts/main/vps.sh",
-    "changelog_url": "https://github.com/everett7623/vps_scripts/blob/main/CHANGELOG.md",
+    "check_url": "https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/version.json",
+    "script_url": "https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh",
+    "changelog_url": "https://github.com/cyhfvg/vps_scripts/blob/main/CHANGELOG.md",
     "critical_update": false,
     "message": "v2.6.0: Refactored for stateless remote execution. Optimized dashboard and dependency handling."
   },

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: system_info.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/system_info.sh
 # 描述: VPS 系统信息深度检测脚本
 #       提供硬件配置、网络状态、系统负载、虚拟化架构及关键服务运行状态的全面报告。

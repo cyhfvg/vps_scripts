@@ -2,7 +2,7 @@
 # ==============================================================================
 # 脚本名称: 公共函数库 (Common Functions Library)
 # 脚本文件: lib/common_functions.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 描述: 提供 VPS 脚本工具集的公共 UI、日志、系统检测及服务管理函数。
 #       本库被设计为可被其他脚本 source 加载，以复用代码。
 # 作者: Jensfrank (Optimized by AI)

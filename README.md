@@ -1,24 +1,21 @@
 # VPS Scripts - 多功能 VPS 脚本工具集
 
+> 本仓库是从 [everett7623/vps_scripts](https://github.com/everett7623/vps_scripts) fork 后维护的修改版本。原作者署名和许可证声明予以保留，当前 fork 地址为 [cyhfvg/vps_scripts](https://github.com/cyhfvg/vps_scripts)。修改说明见 [NOTICE.md](NOTICE.md)。
+
 当前推荐使用新版远程加载入口：
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/everett7623/vps_scripts/main/vps.sh)
-```
-
-也可以替换为你自己 Fork 后的仓库地址：
-```bash
-bash <(curl -s https://raw.githubusercontent.com/XXXX/vps_scripts/main/vps.sh)
+bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 ```
 
 远程运行时脚本会自动使用 `~/.vps_scripts` 作为运行缓存目录，并按需下载 `lib/`、`config/`、功能模块和 `external_scripts/` 外部脚本。
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/everett7623/vps_scripts)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/cyhfvg/vps_scripts)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![OS](https://img.shields.io/badge/OS-Ubuntu%20%7C%20Debian%20%7C%20CentOS%20%7C%20RHEL%20%7C%20Fedora%20%7C%20Arch-orange.svg)]()
 [![Architecture](https://img.shields.io/badge/arch-x86__64%20%7C%20arm64-lightgrey.svg)]()
-[![Stars](https://img.shields.io/github/stars/everett7623/vps_scripts?style=social)](https://github.com/everett7623/vps_scripts)
+[![Stars](https://img.shields.io/github/stars/cyhfvg/vps_scripts?style=social)](https://github.com/cyhfvg/vps_scripts)
 
 [**中文文档**](README.md) | [**English**](README_EN.md) | [**安装指南**](docs/installation.md) | [**使用手册**](docs/usage.md)
 
@@ -91,18 +88,18 @@ bash <(curl -s https://raw.githubusercontent.com/XXXX/vps_scripts/main/vps.sh)
 ### 一键安装
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/everett7623/vps_scripts/main/vps.sh)
+bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 ```
 
 ```bash
-bash <(wget -qO- https://raw.githubusercontent.com/everett7623/vps_scripts/main/vps.sh)
+bash <(wget -qO- https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 ```
 
 ### 本地安装
 
 ```bash
 # 克隆仓库
-git clone https://github.com/everett7623/vps_scripts.git
+git clone https://github.com/cyhfvg/vps_scripts.git
 cd vps_scripts
 
 # 添加执行权限
@@ -298,7 +295,7 @@ vps.sh --debug            # 调试模式
 
 ### 报告问题
 
-[提交Issue](https://github.com/everett7623/vps_scripts/issues/new)时请包含：
+[提交Issue](https://github.com/cyhfvg/vps_scripts/issues/new)时请包含：
 - 系统版本信息
 - 错误信息截图
 - 复现步骤
@@ -348,13 +345,19 @@ A: 编辑 `~/.vps_scripts/config.conf`，设置 `AUTO_UPDATE=false`。
 
 本项目采用 [AGPL-3.0](LICENSE) 许可证。
 
+本仓库为修改版 fork：
+- 原始项目：[everett7623/vps_scripts](https://github.com/everett7623/vps_scripts)
+- 原作者：Jensfrank / everett7623
+- 当前 fork：[cyhfvg/vps_scripts](https://github.com/cyhfvg/vps_scripts)
+- 修改说明：[NOTICE.md](NOTICE.md)
+
 ---
 
 <div align="center">
 
 **如果这个项目对您有帮助，请给个 ⭐ Star 支持一下！**
 
-[![Star History Chart](https://api.star-history.com/svg?repos=everett7623/vps_scripts&type=Date)](https://star-history.com/#everett7623/vps_scripts&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=cyhfvg/vps_scripts&type=Date)](https://star-history.com/#cyhfvg/vps_scripts&Date)
 
 Made with ❤️ by [Jensfrank](https://github.com/everett7623)
 

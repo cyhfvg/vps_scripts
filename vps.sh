@@ -1,19 +1,21 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: vps.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: vps_scripts/vps.sh
 # 描述: VPS 综合管理脚本 (Remote Launcher)
 #       这是一个轻量级引导器。它不包含具体功能，而是动态从 GitHub 
 #       拉取子脚本并在内存中执行，实现"即用即走"的无残留体验。
-# 作者: Jensfrank (Optimized)
+# 原作者: Jensfrank / everett7623
+# 当前 Fork: cyhfvg/vps_scripts
+# 修改说明: See NOTICE.md
 # 版本: 2.6.0 (Remote Edition)
 # 更新日期: 2026-01-20
 # ==============================================================================
 
 # --- 核心配置 ---
 # 远程仓库的 RAW 根地址 (确保此地址可以访问)
-GITHUB_RAW_URL="https://raw.githubusercontent.com/everett7623/vps_scripts/main"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/cyhfvg/vps_scripts/main"
 SCRIPT_SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
 if [ -f "${SCRIPT_SELF_DIR}/vps.sh" ] && [ -d "${SCRIPT_SELF_DIR}/scripts" ]; then
     PROJECT_ROOT="$SCRIPT_SELF_DIR"
@@ -140,8 +142,9 @@ print_header() {
     clear
     echo -e "${GREEN}==========================================================${RESET}"
     echo -e "${CYAN}               VPS 综合管理脚本 (远程加载版)              ${RESET}"
-    echo -e "${CYAN}                  Author: Jensfrank                       ${RESET}"
-    echo -e "${YELLOW}   Project: https://github.com/everett7623/vps_scripts    ${RESET}"
+    echo -e "${CYAN}   Original: Jensfrank / everett7623/vps_scripts          ${RESET}"
+    echo -e "${CYAN}   Fork:     cyhfvg/vps_scripts                           ${RESET}"
+    echo -e "${YELLOW}   Project: https://github.com/cyhfvg/vps_scripts        ${RESET}"
     echo -e "${GREEN}==========================================================${RESET}"
     echo ""
 }

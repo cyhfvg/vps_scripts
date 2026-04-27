@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: set_timezone.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/set_timezone.sh
 # 描述: VPS 时区设置脚本 (原生增强版)
 #       保留原版所有详细配置逻辑，仅扩充支持全球 56 个常用城市时区。

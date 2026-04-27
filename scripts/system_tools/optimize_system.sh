@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: optimize_system.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/optimize_system.sh
 # 描述: VPS 系统基础优化工具 (稳定优先版)
 #       专注于提升系统稳定性与基础安全性，移除所有激进参数，防止小内存 OOM。

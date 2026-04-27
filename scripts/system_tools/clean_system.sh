@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: clean_system.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/clean_system.sh
 # 描述: VPS 系统深度清理工具
 #       安全清理包管理器缓存、旧内核、日志文件、Docker 镜像及用户缓存。

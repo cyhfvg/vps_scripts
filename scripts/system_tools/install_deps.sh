@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: install_deps.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/install_deps.sh
 # 描述: VPS 依赖安装管理器
 #       自动检测系统包管理器，支持批量安装基础、开发、监控及安全工具包。

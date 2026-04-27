@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: change_hostname.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/change_hostname.sh
 # 描述: VPS 主机名修改工具 (全功能版)
 #       包含交互菜单、修改验证、回滚机制、云配置适配及修改报告生成。

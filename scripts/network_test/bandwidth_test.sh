@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: bandwidth_test.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/network_test/bandwidth_test.sh
 # 描述: VPS 带宽性能测试工具 (v2.0.2 海外优化统一版)
 #       【功能列表】

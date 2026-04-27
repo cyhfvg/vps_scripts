@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: update_system.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/system_tools/update_system.sh
 # 描述: VPS 系统安全更新工具
 #       支持全量更新、仅安全更新、内核更新，包含自动备份、清理及重启检测。

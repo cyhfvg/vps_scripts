@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # 脚本名称: backhaul_route_test.sh
-# 仓库地址: https://github.com/everett7623/vps_scripts
+# 仓库地址: https://github.com/cyhfvg/vps_scripts
 # 脚本路径: scripts/network_test/backhaul_route_test.sh
 # 描述: VPS 回程路由深度测试工具 (表格化增强版)
 #       集成 MTR/Traceroute，支持 CN2/9929/CMI 线路智能识别，输出可视化表格报告。
