@@ -2,13 +2,6 @@
 
 > 本仓库是从 [everett7623/vps_scripts](https://github.com/everett7623/vps_scripts) fork 后维护的修改版本。原作者署名和许可证声明予以保留，当前 fork 地址为 [cyhfvg/vps_scripts](https://github.com/cyhfvg/vps_scripts)。修改说明见 [NOTICE.md](NOTICE.md)。
 
-当前推荐使用新版远程加载入口：
-```bash
-bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
-```
-
-远程运行时脚本会自动使用 `~/.vps_scripts` 作为运行缓存目录，并按需下载 `lib/`、`config/`、功能模块和 `external_scripts/` 外部脚本。
-
 <div align="center">
 
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/cyhfvg/vps_scripts)
@@ -36,12 +29,14 @@ bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 ## ✨ 功能特性
 
 ### 🖥️ 系统工具
+
 - **系统信息查看** - 详细展示CPU、内存、硬盘、网络等信息
 - **系统更新** - 支持多种Linux发行版的系统更新
 - **系统清理** - 清理缓存、日志、临时文件等
 - **系统优化** - BBR加速、内核参数优化、系统限制调整
 
 ### 🌐 网络测试
+
 - **IP质量检测** - 检测IP质量、黑名单状态、地理位置等
 - **应用解锁** - 测试 Netflix、YouTube、Disney+、TikTok、Reddit、ChatGPT、ChatGPT APP、Gemini、Claude 等应用可用性
 - **三网测速** - 电信、联通、移动三网速度测试
@@ -50,6 +45,7 @@ bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 - **带宽测试** - 使用iperf3进行专业带宽测试
 
 ### 📊 性能测试
+
 - **YABS测试** - 综合性能基准测试
 - **融合怪测试** - 集成多种测试的综合脚本
 - **超售测试** - 检测VPS是否存在超售情况
@@ -60,6 +56,7 @@ bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 ## 🔧 系统要求
 
 ### 支持的操作系统
+
 - **Ubuntu** 18.04 / 20.04 / 22.04 / 24.04
 - **Debian** 9 / 10 / 11 / 12
 - **CentOS** 7 / 8 / Stream 8 / Stream 9
@@ -73,12 +70,14 @@ bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 - **openSUSE** Leap 15.3+
 
 ### 硬件要求
+
 - **CPU**: 1核心及以上
 - **内存**: 512MB及以上
 - **硬盘**: 1GB可用空间
 - **网络**: 需要访问GitHub和测试服务器
 
 ### 软件要求
+
 - **权限**: root或sudo权限
 - **Shell**: Bash 4.0+
 - **基础工具**: curl或wget
@@ -86,6 +85,8 @@ bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
 ## 🚀 快速开始
 
 ### 一键安装
+
+远程运行时脚本会自动使用 `~/.vps_scripts` 作为运行缓存目录，并按需下载 `lib/`、`config/`、功能模块和 `external_scripts/` 外部脚本。
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/cyhfvg/vps_scripts/main/vps.sh)
@@ -131,6 +132,7 @@ vps
 <summary>点击展开系统工具详细说明</summary>
 
 #### 系统信息查看
+
 - 硬件信息：CPU型号、核心数、架构
 - 内存信息：总量、已用、可用、缓存
 - 硬盘信息：分区、使用率、文件系统
@@ -138,6 +140,7 @@ vps
 - 系统信息：发行版、内核版本、运行时间
 
 #### 系统更新
+
 - 自动检测包管理器（apt/yum/dnf/pacman等）
 - 更新软件包列表
 - 升级已安装的软件包
@@ -145,6 +148,7 @@ vps
 - 更新内核（可选）
 
 #### 系统清理
+
 - 清理包管理器缓存
 - 清理系统日志（保留最近7天）
 - 清理临时文件
@@ -152,6 +156,7 @@ vps
 - 清理旧内核（保留最新2个）
 
 #### 系统优化
+
 - 启用BBR TCP拥塞控制
 - 优化内核参数
 - 调整文件描述符限制
@@ -166,6 +171,7 @@ vps
 <summary>点击展开网络测试详细说明</summary>
 
 #### IP质量检测
+
 - IP归属地查询
 - 黑名单检测（Spamhaus、Barracuda等）
 - 端口开放检测
@@ -173,6 +179,7 @@ vps
 - DNS解析测试
 
 #### 应用解锁
+
 - Netflix（检测区域）
 - YouTube Premium
 - Disney+
@@ -182,6 +189,7 @@ vps
 - 更多常见应用平台...
 
 #### 三网测速
+
 - 电信节点测速
 - 联通节点测速
 - 移动节点测速
@@ -189,6 +197,7 @@ vps
 - 支持多线程/单线程模式
 
 #### 回程路由
+
 - 自动检测三网回程
 - 支持TCP/ICMP模式
 - 显示AS号和运营商信息
@@ -202,6 +211,7 @@ vps
 <summary>点击展开性能测试详细说明</summary>
 
 #### YABS综合测试
+
 - CPU性能测试（单核/多核）
 - 内存性能测试
 - 硬盘性能测试（fio）
@@ -209,6 +219,7 @@ vps
 - Geekbench跑分（可选）
 
 #### 融合怪测试
+
 - 系统信息收集
 - CPU性能评估
 - 内存测试
@@ -217,6 +228,7 @@ vps
 - 综合评分
 
 #### 超售测试
+
 - CPU超售检测
 - 内存超售检测
 - 硬盘超售检测
@@ -262,6 +274,7 @@ vps.sh --debug            # 调试模式
 ## 📅 更新日志
 
 ### v2.0.0 (2025-06-12)
+
 - 🎉 全新架构重构，模块化设计
 - ✨ 新增多系统支持（CentOS/RHEL/Arch等）
 - 🎨 全新分级菜单系统
@@ -269,6 +282,7 @@ vps.sh --debug            # 调试模式
 - 📝 完善文档和注释
 
 ### v1.2.4 (2025-05-19)
+
 - 添加哪吒agent清理脚本
 - 优化菜单显示
 
@@ -296,6 +310,7 @@ vps.sh --debug            # 调试模式
 ### 报告问题
 
 [提交Issue](https://github.com/cyhfvg/vps_scripts/issues/new)时请包含：
+
 - 系统版本信息
 - 错误信息截图
 - 复现步骤
@@ -306,18 +321,21 @@ vps.sh --debug            # 调试模式
 <summary>Q: 脚本支持ARM架构的VPS吗？</summary>
 
 A: 是的，脚本支持x86_64和ARM64架构。部分功能在ARM上可能有限制。
+
 </details>
 
 <details>
 <summary>Q: 如何卸载脚本？</summary>
 
 A: 运行 `vps.sh` 选择 `99) 卸载脚本` 即可完全卸载。
+
 </details>
 
 <details>
 <summary>Q: 如何关闭自动更新？</summary>
 
 A: 编辑 `~/.vps_scripts/config.conf`，设置 `AUTO_UPDATE=false`。
+
 </details>
 
 [查看更多常见问题](docs/FAQ.md)
@@ -330,15 +348,17 @@ A: 编辑 `~/.vps_scripts/config.conf`，设置 `AUTO_UPDATE=false`。
 4. 第三方脚本的安全性和稳定性由原作者负责
 
 ## 鸣谢
-* [Eooce](https://github.com/eooce/ssh_tool)
-* [Netflixxp](https://github.com/Netflixxp/jcnf-box)
-* [科技lion]
-* [BlueSkyXN](https://github.com/BlueSkyXN/SKY-BOX)
-* [yonggekkk](https://github.com/yonggekkk/sing-box_hysteria2_tuic_argo_reality)
-* [Fscarmen](https://github.com/fscarmen/sba)
-* [mack-a](https://github.com/mack-a/v2ray-agent)
+
+- [Eooce](https://github.com/eooce/ssh_tool)
+- [Netflixxp](https://github.com/Netflixxp/jcnf-box)
+- [科技lion]
+- [BlueSkyXN](https://github.com/BlueSkyXN/SKY-BOX)
+- [yonggekkk](https://github.com/yonggekkk/sing-box_hysteria2_tuic_argo_reality)
+- [Fscarmen](https://github.com/fscarmen/sba)
+- [mack-a](https://github.com/mack-a/v2ray-agent)
 
 ## 广告
+
 [VPS，梯子等小工具推荐](https://github.com/everett7623/tool)
 
 ## 📄 许可证
@@ -346,6 +366,7 @@ A: 编辑 `~/.vps_scripts/config.conf`，设置 `AUTO_UPDATE=false`。
 本项目采用 [AGPL-3.0](LICENSE) 许可证。
 
 本仓库为修改版 fork：
+
 - 原始项目：[everett7623/vps_scripts](https://github.com/everett7623/vps_scripts)
 - 原作者：Jensfrank / everett7623
 - 当前 fork：[cyhfvg/vps_scripts](https://github.com/cyhfvg/vps_scripts)
