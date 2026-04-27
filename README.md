@@ -1,8 +1,16 @@
 # VPS Scripts - 多功能 VPS 脚本工具集
-(新版本目前不可用，升级中)，请使用旧脚本：
+
+当前推荐使用新版远程加载入口：
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/everett7623/vps_scripts/main/vps_scripts.sh)
+bash <(curl -s https://raw.githubusercontent.com/everett7623/vps_scripts/main/vps.sh)
 ```
+
+也可以替换为你自己 Fork 后的仓库地址：
+```bash
+bash <(curl -s https://raw.githubusercontent.com/XXXX/vps_scripts/main/vps.sh)
+```
+
+远程运行时脚本会自动使用 `~/.vps_scripts` 作为运行缓存目录，并按需下载 `lib/`、`config/`、功能模块和 `external_scripts/` 外部脚本。
 
 <div align="center">
 
@@ -38,7 +46,7 @@ bash <(curl -s https://raw.githubusercontent.com/everett7623/vps_scripts/main/vp
 
 ### 🌐 网络测试
 - **IP质量检测** - 检测IP质量、黑名单状态、地理位置等
-- **流媒体解锁** - 测试Netflix、YouTube、Disney+等流媒体解锁情况
+- **应用解锁** - 测试 Netflix、YouTube、Disney+、TikTok、Reddit、ChatGPT、ChatGPT APP、Gemini、Claude 等应用可用性
 - **三网测速** - 电信、联通、移动三网速度测试
 - **回程路由** - 追踪VPS到国内的回程路由
 - **响应测试** - 测试全球各地到VPS的响应时间
@@ -51,19 +59,6 @@ bash <(curl -s https://raw.githubusercontent.com/everett7623/vps_scripts/main/vp
 - **CPU性能** - 单核/多核性能测试
 - **内存性能** - 内存读写速度测试
 - **硬盘性能** - 4K随机读写、顺序读写测试
-
-### 🚀 服务部署
-- **Docker环境** - 一键安装Docker和Docker Compose
-- **Web环境** - Nginx、Apache、PHP、MySQL快速部署
-- **开发环境** - Node.js、Python、Java、Go环境配置
-- **代理服务** - Shadowsocks、V2Ray、WireGuard等
-- **监控服务** - 哪吒监控、Prometheus、Grafana等
-
-### 📈 统计分析
-- **使用统计** - 记录各功能使用次数和频率
-- **性能分析** - 追踪脚本执行时间和资源消耗
-- **可视化报告** - 生成直观的统计图表
-- **数据导出** - 支持导出JSON、CSV格式的统计数据
 
 ## 🔧 系统要求
 
@@ -180,13 +175,14 @@ vps
 - MTU探测
 - DNS解析测试
 
-#### 流媒体解锁
+#### 应用解锁
 - Netflix（检测区域）
 - YouTube Premium
 - Disney+
 - HBO Max
 - Amazon Prime Video
-- 更多流媒体平台...
+- ChatGPT Web、ChatGPT APP、OpenAI API、Google Gemini、Claude、Microsoft Copilot、Perplexity
+- 更多常见应用平台...
 
 #### 三网测速
 - 电信节点测速
@@ -232,37 +228,6 @@ vps
 
 </details>
 
-### 服务部署模块
-
-<details>
-<summary>点击展开服务部署详细说明</summary>
-
-#### Docker环境
-```bash
-# 自动安装最新版Docker
-# 配置Docker加速器
-# 安装Docker Compose
-# 设置开机自启
-```
-
-#### Web环境
-```bash
-# Nginx + PHP + MySQL
-# Apache + PHP + MySQL
-# Caddy + PHP
-# 支持多版本PHP切换
-```
-
-#### 开发环境
-```bash
-# Node.js (支持nvm管理)
-# Python (支持pyenv管理)
-# Java (OpenJDK/Oracle JDK)
-# Go语言环境
-```
-
-</details>
-
 ## 🔍 高级用法
 
 ### 配置文件
@@ -278,10 +243,6 @@ UPDATE_CHECK_INTERVAL=7
 USE_COLOR=true
 MENU_STYLE=advanced
 
-# 统计设置
-ENABLE_STATS=true
-STATS_SERVER=https://your-stats-server.com/api
-
 # 代理设置
 HTTP_PROXY=
 HTTPS_PROXY=
@@ -294,24 +255,11 @@ HTTPS_PROXY=
 vps.sh --sysinfo          # 显示系统信息
 vps.sh --update           # 更新系统
 vps.sh --speedtest        # 运行测速
-vps.sh --docker           # 安装Docker
 
 # 其他参数
 vps.sh --no-color         # 禁用彩色输出
 vps.sh --quiet            # 静默模式
 vps.sh --debug            # 调试模式
-```
-
-### API接口
-
-脚本提供JSON格式的统计数据输出：
-
-```bash
-# 获取统计数据
-vps.sh --stats-json > stats.json
-
-# 发送到远程服务器
-vps.sh --send-stats --server=https://api.example.com --key=YOUR_API_KEY
 ```
 
 ## 📅 更新日志
@@ -320,13 +268,11 @@ vps.sh --send-stats --server=https://api.example.com --key=YOUR_API_KEY
 - 🎉 全新架构重构，模块化设计
 - ✨ 新增多系统支持（CentOS/RHEL/Arch等）
 - 🎨 全新分级菜单系统
-- 📊 新增统计分析功能
 - 🔧 优化错误处理机制
 - 📝 完善文档和注释
 
 ### v1.2.4 (2025-05-19)
 - 添加哪吒agent清理脚本
-- 修复统计功能bug
 - 优化菜单显示
 
 [查看完整更新日志](CHANGELOG.md)
@@ -369,12 +315,6 @@ A: 是的，脚本支持x86_64和ARM64架构。部分功能在ARM上可能有限
 <summary>Q: 如何卸载脚本？</summary>
 
 A: 运行 `vps.sh` 选择 `99) 卸载脚本` 即可完全卸载。
-</details>
-
-<details>
-<summary>Q: 统计数据存储在哪里？</summary>
-
-A: 统计数据存储在 `~/.vps_scripts/` 目录下，不会上传到任何服务器。
 </details>
 
 <details>

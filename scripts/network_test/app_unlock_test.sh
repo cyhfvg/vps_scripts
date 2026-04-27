@@ -1,11 +1,11 @@
 #!/bin/bash
 
 #==============================================================================
-# 脚本名称: streaming_unlock_test.sh
-# 描述: VPS流媒体解锁测试脚本 - 测试Netflix、Disney+、YouTube等流媒体服务解锁情况
+# 脚本名称: app_unlock_test.sh
+# 描述: VPS 应用解锁测试脚本 - 测试流媒体、常见应用及 AI 服务解锁情况
 # 作者: Jensfrank
-# 路径: vps_scripts/scripts/network_test/streaming_unlock_test.sh
-# 使用方法: bash streaming_unlock_test.sh [选项]
+# 路径: vps_scripts/scripts/network_test/app_unlock_test.sh
+# 使用方法: bash app_unlock_test.sh [选项]
 # 选项: --basic (基础测试) --full (完整测试) --region (地区检测)
 # 更新日期: 2024-06-17
 #==============================================================================
@@ -22,9 +22,9 @@ NC='\033[0m' # No Color
 
 # 配置变量
 LOG_DIR="/var/log/vps_scripts"
-LOG_FILE="$LOG_DIR/streaming_unlock_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="$LOG_DIR/app_unlock_$(date +%Y%m%d_%H%M%S).log"
 REPORT_DIR="/var/log/vps_scripts/reports"
-REPORT_FILE="$REPORT_DIR/streaming_unlock_$(date +%Y%m%d_%H%M%S).txt"
+REPORT_FILE="$REPORT_DIR/app_unlock_$(date +%Y%m%d_%H%M%S).txt"
 TEMP_DIR="/tmp/streaming_test_$$"
 
 # 测试模式
@@ -35,6 +35,31 @@ REGION_CHECK=false
 # User-Agent
 UA_BROWSER="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 UA_MOBILE="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+
+curl_code() {
+    local url="$1"
+    shift
+    curl -sS -L --max-time 10 -o /dev/null -w "%{http_code}" "$@" "$url" 2>/dev/null
+}
+
+append_result() {
+    local service="$1"
+    local status="$2"
+    local region="$3"
+    local note="$4"
+
+    {
+        echo "$service:"
+        echo "  状态: $status"
+        [ -n "$region" ] && echo "  地区: $region"
+        [ -n "$note" ] && echo "  说明: $note"
+        echo ""
+    } >> "$REPORT_FILE"
+}
+
+get_openai_region() {
+    curl -s --max-time 10 "https://chat.openai.com/cdn-cgi/trace" 2>/dev/null | awk -F= '/^loc=/{print $2; exit}'
+}
 
 # 创建目录
 create_directories() {
@@ -396,7 +421,7 @@ test_bbc_iplayer() {
     } >> "$REPORT_FILE"
 }
 
-# 亚洲流媒体测试
+# 亚洲应用测试
 test_asian_streaming() {
     print_msg "$BLUE" "\n========== 亚洲流媒体 测试 =========="
     
@@ -469,9 +494,115 @@ test_gaming_platforms() {
     fi
 }
 
+# 常见应用测试
+test_common_apps() {
+    print_msg "$BLUE" "\n========== 常见应用 测试 =========="
+
+    echo -e "${CYAN}测试 TikTok...${NC}"
+    local tiktok_response=$(curl -s --max-time 10 -H "User-Agent: $UA_MOBILE" "https://www.tiktok.com/" 2>&1)
+    local tiktok_region=$(echo "$tiktok_response" | grep -oP '"region":"\K[^"]+' | head -1)
+    if echo "$tiktok_response" | grep -qiE "verify|captcha|tiktok|region"; then
+        echo -e "${GREEN}  TikTok: 可访问 ✓${tiktok_region:+ (地区: $tiktok_region)}${NC}"
+        append_result "TikTok" "可用" "$tiktok_region" ""
+    else
+        echo -e "${RED}  TikTok: 受限或无法确认 ✗${NC}"
+        append_result "TikTok" "受限" "" "无法获取有效响应"
+    fi
+
+    echo -e "${CYAN}测试 Reddit...${NC}"
+    local reddit_code=$(curl_code "https://www.reddit.com/" -H "User-Agent: $UA_BROWSER")
+    if [[ "$reddit_code" =~ ^(200|301|302|403)$ ]]; then
+        echo -e "${GREEN}  Reddit: 可访问 ✓ (HTTP $reddit_code)${NC}"
+        append_result "Reddit" "可用" "" "HTTP $reddit_code"
+    else
+        echo -e "${RED}  Reddit: 受限 ✗ (HTTP ${reddit_code:-失败})${NC}"
+        append_result "Reddit" "受限" "" "HTTP ${reddit_code:-失败}"
+    fi
+}
+
+# AI 应用测试
+test_ai_apps() {
+    print_msg "$BLUE" "\n========== AI 应用 测试 =========="
+
+    local openai_region=$(get_openai_region)
+    local chatgpt_web_code=$(curl_code "https://chatgpt.com/favicon.ico" \
+        -H "User-Agent: $UA_BROWSER" \
+        -H "Referer: https://chatgpt.com/")
+    local chatgpt_app_response=$(curl -sS --max-time 10 "https://ios.chat.openai.com/" \
+        -H "User-Agent: $UA_MOBILE" 2>&1)
+    local openai_api_response=$(curl -sS --max-time 10 "https://api.openai.com/compliance/cookie_requirements" \
+        -H "User-Agent: $UA_BROWSER" \
+        -H "Authorization: Bearer null" \
+        -H "Origin: https://platform.openai.com" \
+        -H "Referer: https://platform.openai.com/" 2>&1)
+
+    local web_ok=false
+    local app_ok=false
+    local api_ok=false
+
+    [[ "$chatgpt_web_code" != "403" && "$chatgpt_web_code" != "000" && -n "$chatgpt_web_code" ]] && web_ok=true
+    ! echo "$chatgpt_app_response" | grep -qiE "VPN|unsupported|not available|blocked|Access denied" && [[ "$chatgpt_app_response" != curl* ]] && app_ok=true
+    ! echo "$openai_api_response" | grep -qi "unsupported_country" && [[ "$openai_api_response" != curl* ]] && api_ok=true
+
+    if [ "$web_ok" = true ] && [ "$app_ok" = true ] && [ "$api_ok" = true ]; then
+        echo -e "${GREEN}  ChatGPT: Web/APP/API 均可用 ✓${openai_region:+ (地区: $openai_region)}${NC}"
+        append_result "ChatGPT" "可用" "$openai_region" "Web/APP/API"
+    elif [ "$web_ok" = true ] || [ "$app_ok" = true ] || [ "$api_ok" = true ]; then
+        local available=""
+        [ "$web_ok" = true ] && available="${available}Web "
+        [ "$app_ok" = true ] && available="${available}App "
+        [ "$api_ok" = true ] && available="${available}API "
+        echo -e "${YELLOW}  ChatGPT: 部分可用 (${available% })${openai_region:+ (地区: $openai_region)}${NC}"
+        append_result "ChatGPT" "部分可用" "$openai_region" "${available% }"
+    else
+        echo -e "${RED}  ChatGPT: 不支持 ✗${NC}"
+        append_result "ChatGPT" "不支持" "$openai_region" "Web/APP/API 均不可用"
+    fi
+
+    echo -e "${CYAN}测试 Google Gemini...${NC}"
+    local gemini_code=$(curl_code "https://gemini.google.com/" -H "User-Agent: $UA_BROWSER")
+    if [[ "$gemini_code" =~ ^(200|301|302)$ ]]; then
+        echo -e "${GREEN}  Google Gemini: 可访问 ✓ (HTTP $gemini_code)${NC}"
+        append_result "Google Gemini" "可用" "" "HTTP $gemini_code"
+    else
+        echo -e "${RED}  Google Gemini: 受限或无法确认 ✗ (HTTP ${gemini_code:-失败})${NC}"
+        append_result "Google Gemini" "受限" "" "HTTP ${gemini_code:-失败}"
+    fi
+
+    echo -e "${CYAN}测试 Claude...${NC}"
+    local claude_code=$(curl_code "https://claude.ai/" -H "User-Agent: $UA_BROWSER")
+    if [[ "$claude_code" =~ ^(200|301|302|403)$ ]]; then
+        echo -e "${GREEN}  Claude: 可访问 ✓ (HTTP $claude_code)${NC}"
+        append_result "Claude" "可用" "" "HTTP $claude_code"
+    else
+        echo -e "${RED}  Claude: 受限或无法确认 ✗ (HTTP ${claude_code:-失败})${NC}"
+        append_result "Claude" "受限" "" "HTTP ${claude_code:-失败}"
+    fi
+
+    echo -e "${CYAN}测试 Microsoft Copilot...${NC}"
+    local copilot_code=$(curl_code "https://copilot.microsoft.com/" -H "User-Agent: $UA_BROWSER")
+    if [[ "$copilot_code" =~ ^(200|301|302|403)$ ]]; then
+        echo -e "${GREEN}  Microsoft Copilot: 可访问 ✓ (HTTP $copilot_code)${NC}"
+        append_result "Microsoft Copilot" "可用" "" "HTTP $copilot_code"
+    else
+        echo -e "${RED}  Microsoft Copilot: 受限或无法确认 ✗ (HTTP ${copilot_code:-失败})${NC}"
+        append_result "Microsoft Copilot" "受限" "" "HTTP ${copilot_code:-失败}"
+    fi
+
+    echo -e "${CYAN}测试 Perplexity...${NC}"
+    local perplexity_code=$(curl_code "https://www.perplexity.ai/" -H "User-Agent: $UA_BROWSER")
+    if [[ "$perplexity_code" =~ ^(200|301|302|403)$ ]]; then
+        echo -e "${GREEN}  Perplexity: 可访问 ✓ (HTTP $perplexity_code)${NC}"
+        append_result "Perplexity" "可用" "" "HTTP $perplexity_code"
+    else
+        echo -e "${RED}  Perplexity: 受限或无法确认 ✗ (HTTP ${perplexity_code:-失败})${NC}"
+        append_result "Perplexity" "受限" "" "HTTP ${perplexity_code:-失败}"
+    fi
+}
+
 # 生成测试总结
 generate_summary() {
-    print_msg "$BLUE" "\n========== 流媒体解锁总结 =========="
+    print_msg "$BLUE" "\n========== 应用解锁总结 =========="
     
     # 统计解锁数量
     local total_services=0
@@ -481,7 +612,7 @@ generate_summary() {
     
     # 读取报告统计
     while IFS= read -r line; do
-        if echo "$line" | grep -qE "(Netflix|Disney\+|YouTube|Prime Video|HBO Max|Spotify|BBC iPlayer|Bilibili|爱奇艺|腾讯视频|Steam):"; then
+        if echo "$line" | grep -qE "(Netflix|Disney\+|YouTube|Prime Video|HBO Max|Spotify|BBC iPlayer|Bilibili|爱奇艺|腾讯视频|Steam|TikTok|Reddit|ChatGPT|Google Gemini|Claude|Microsoft Copilot|Perplexity):"; then
             ((total_services++))
             
             if echo "$line" | grep -qE "(解锁|支持|可用)"; then
@@ -503,16 +634,17 @@ generate_summary() {
     # 地区推荐
     echo -e "\n${CYAN}推荐用途:${NC}"
     
-    local unlock_rate=$((unlocked_services * 100 / total_services))
+    local unlock_rate=0
+    [ "$total_services" -gt 0 ] && unlock_rate=$((unlocked_services * 100 / total_services))
     
     if [ $unlock_rate -ge 80 ]; then
-        echo -e "${GREEN}  ✓ 非常适合作为流媒体服务器${NC}"
-        echo -e "${GREEN}  ✓ 支持大部分主流流媒体平台${NC}"
+        echo -e "${GREEN}  ✓ 非常适合作为应用解锁节点${NC}"
+        echo -e "${GREEN}  ✓ 支持大部分主流应用平台${NC}"
     elif [ $unlock_rate -ge 50 ]; then
-        echo -e "${YELLOW}  ⚡ 适合部分流媒体服务${NC}"
+        echo -e "${YELLOW}  ⚡ 适合部分应用服务${NC}"
         echo -e "${YELLOW}  ⚡ 可能需要配合其他工具使用${NC}"
     else
-        echo -e "${RED}  ✗ 不适合作为流媒体服务器${NC}"
+        echo -e "${RED}  ✗ 不适合作为应用解锁节点${NC}"
         echo -e "${RED}  ✗ 大部分服务受地理限制${NC}"
     fi
     
@@ -533,11 +665,11 @@ generate_summary() {
 generate_detailed_report() {
     print_msg "$BLUE" "\n生成详细报告..."
     
-    local report_file="$REPORT_DIR/streaming_report_$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="$REPORT_DIR/app_unlock_report_$(date +%Y%m%d_%H%M%S).txt"
     
     {
         echo "=========================================="
-        echo "       流媒体解锁测试报告"
+        echo "       应用解锁测试报告"
         echo "=========================================="
         echo "测试时间: $(date '+%Y-%m-%d %H:%M:%S')"
         echo "测试主机: $(hostname)"
@@ -550,7 +682,7 @@ generate_detailed_report() {
         echo "说明:"
         echo "1. 测试结果仅供参考，实际可用性可能因时间和地区而异"
         echo "2. 部分服务可能需要有效账户才能完全测试"
-        echo "3. 解锁不代表可以观看所有内容，部分内容可能有额外限制"
+        echo "3. 解锁不代表可以使用所有内容或账号功能，部分服务可能有额外限制"
         echo ""
         echo "详细日志: $LOG_FILE"
         echo "=========================================="
@@ -566,6 +698,7 @@ basic_test() {
     test_youtube
     test_disney_plus
     test_spotify
+    test_ai_apps
 }
 
 # 完整测试
@@ -580,13 +713,15 @@ full_test() {
     test_bbc_iplayer
     test_asian_streaming
     test_gaming_platforms
+    test_common_apps
+    test_ai_apps
 }
 
 # 交互式菜单
 interactive_menu() {
     clear
     echo -e "${PURPLE}╔════════════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${PURPLE}║                       VPS 流媒体解锁测试工具 v1.0                          ║${NC}"
+    echo -e "${PURPLE}║                       VPS 应用解锁测试工具 v1.1                            ║${NC}"
     echo -e "${PURPLE}╚════════════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
@@ -596,15 +731,16 @@ interactive_menu() {
     echo ""
     
     echo -e "${CYAN}请选择测试模式:${NC}"
-    echo -e "${GREEN}1)${NC} 基础测试 (Netflix/YouTube/Disney+/Spotify)"
-    echo -e "${GREEN}2)${NC} 标准测试 (主流欧美流媒体)"
-    echo -e "${GREEN}3)${NC} 完整测试 (所有流媒体平台)"
-    echo -e "${GREEN}4)${NC} 亚洲流媒体测试"
-    echo -e "${GREEN}5)${NC} 单项测试"
+    echo -e "${GREEN}1)${NC} 基础测试 (主流流媒体 + AI 应用)"
+    echo -e "${GREEN}2)${NC} 标准测试 (主流流媒体 + ChatGPT)"
+    echo -e "${GREEN}3)${NC} 完整测试 (流媒体/常见应用/AI 应用)"
+    echo -e "${GREEN}4)${NC} 亚洲应用测试"
+    echo -e "${GREEN}5)${NC} AI 应用测试"
+    echo -e "${GREEN}6)${NC} 单项测试"
     echo -e "${GREEN}0)${NC} 退出"
     echo ""
     
-    read -p "请输入选项 [0-5]: " choice
+    read -p "请输入选项 [0-6]: " choice
     
     case $choice in
         1)
@@ -621,6 +757,7 @@ interactive_menu() {
             test_prime_video
             test_hbo_max
             test_spotify
+            test_ai_apps
             generate_summary
             generate_detailed_report
             ;;
@@ -635,6 +772,12 @@ interactive_menu() {
             test_asian_streaming
             ;;
         5)
+            get_ip_location
+            test_ai_apps
+            generate_summary
+            generate_detailed_report
+            ;;
+        6)
             single_service_menu
             ;;
         0)
@@ -652,7 +795,7 @@ interactive_menu() {
 # 单项测试菜单
 single_service_menu() {
     clear
-    echo -e "${CYAN}选择要测试的流媒体服务:${NC}"
+    echo -e "${CYAN}选择要测试的应用服务:${NC}"
     echo -e "${GREEN}1)${NC} Netflix"
     echo -e "${GREEN}2)${NC} Disney+"
     echo -e "${GREEN}3)${NC} YouTube Premium"
@@ -661,10 +804,12 @@ single_service_menu() {
     echo -e "${GREEN}6)${NC} Spotify"
     echo -e "${GREEN}7)${NC} BBC iPlayer"
     echo -e "${GREEN}8)${NC} Bilibili"
+    echo -e "${GREEN}9)${NC} TikTok/Reddit"
+    echo -e "${GREEN}10)${NC} AI 应用 (ChatGPT Web/APP/API、Gemini、Claude、Copilot、Perplexity)"
     echo -e "${GREEN}0)${NC} 返回主菜单"
     echo ""
     
-    read -p "请输入选项 [0-8]: " service_choice
+    read -p "请输入选项 [0-10]: " service_choice
     
     case $service_choice in
         1) test_netflix ;;
@@ -675,6 +820,8 @@ single_service_menu() {
         6) test_spotify ;;
         7) test_bbc_iplayer ;;
         8) test_asian_streaming ;;
+        9) test_common_apps ;;
+        10) test_ai_apps ;;
         0) interactive_menu ;;
         *)
             print_msg "$RED" "无效选项"
@@ -718,10 +865,23 @@ show_help() {
   游戏平台:
     - Steam
 
+  常见应用:
+    - TikTok
+    - Reddit
+
+  AI 应用:
+    - ChatGPT Web
+    - ChatGPT APP
+    - OpenAI API
+    - Google Gemini
+    - Claude
+    - Microsoft Copilot
+    - Perplexity
+
 注意:
   - 测试需要网络连接
   - 结果可能因时间和地区而异
-  - 仅测试解锁状态，不测试播放质量
+  - 仅测试应用访问状态，不测试账号权益或播放质量
 EOF
 }
 
@@ -763,10 +923,10 @@ main() {
     parse_arguments "$@"
     
     # 开始测试
-    log "开始流媒体解锁测试"
+    log "开始应用解锁测试"
     
     {
-        echo "========== 流媒体解锁测试 =========="
+        echo "========== 应用解锁测试 =========="
         echo "开始时间: $(date '+%Y-%m-%d %H:%M:%S')"
         echo ""
     } > "$REPORT_FILE"
@@ -783,7 +943,7 @@ main() {
         interactive_menu
     fi
     
-    print_msg "$GREEN" "\n流媒体解锁测试完成！"
+    print_msg "$GREEN" "\n应用解锁测试完成！"
 }
 
 # 运行主函数

@@ -14,6 +14,13 @@
 # --- 核心配置 ---
 # 远程仓库的 RAW 根地址 (确保此地址可以访问)
 GITHUB_RAW_URL="https://raw.githubusercontent.com/everett7623/vps_scripts/main"
+SCRIPT_SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+if [ -f "${SCRIPT_SELF_DIR}/vps.sh" ] && [ -d "${SCRIPT_SELF_DIR}/scripts" ]; then
+    PROJECT_ROOT="$SCRIPT_SELF_DIR"
+else
+    PROJECT_ROOT="${VPS_SCRIPTS_HOME:-${HOME:-/tmp}/.vps_scripts}"
+fi
+EXTERNAL_SCRIPTS_DIR="${PROJECT_ROOT}/external_scripts"
 
 # --- 颜色定义 ---
 RESET='\033[0m'
@@ -27,7 +34,7 @@ WHITE='\033[0;37m'
 BOLD='\033[1m'
 
 # --- 全局变量 ---
-DOWNLOAD_CMD=""
+DOWNLOAD_TOOL=""
 
 # ==============================================================================
 # 基础工具函数
@@ -36,14 +43,96 @@ DOWNLOAD_CMD=""
 # 1. 环境检查 (启动时执行一次)
 check_environment() {
     if command -v curl >/dev/null 2>&1; then
-        DOWNLOAD_CMD="curl -sSL"
+        DOWNLOAD_TOOL="curl"
     elif command -v wget >/dev/null 2>&1; then
-        DOWNLOAD_CMD="wget -qO-"
+        DOWNLOAD_TOOL="wget"
     else
         echo -e "${RED}[错误] 系统未安装 curl 或 wget，无法下载远程脚本。${RESET}"
         echo -e "请尝试手动安装: ${YELLOW}apt install curl${RESET} 或 ${YELLOW}yum install curl${RESET}"
         exit 1
     fi
+}
+
+download_to_file() {
+    local url="$1"
+    local output="$2"
+
+    if [ "$DOWNLOAD_TOOL" = "curl" ]; then
+        curl -fsSL "$url" -o "$output"
+    else
+        wget -q "$url" -O "$output"
+    fi
+}
+
+download_repo_file() {
+    local rel_path="$1"
+    local output="$2"
+    download_to_file "${GITHUB_RAW_URL}/${rel_path}" "$output"
+}
+
+ensure_runtime_file() {
+    local rel_path="$1"
+    local target="${PROJECT_ROOT}/${rel_path}"
+
+    if [ -f "$target" ]; then
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$target")"
+    if download_repo_file "$rel_path" "$target"; then
+        chmod +x "$target" 2>/dev/null || true
+        return 0
+    fi
+
+    rm -f "$target"
+    return 1
+}
+
+ensure_runtime_support_files() {
+    ensure_runtime_file "lib/common_functions.sh" || true
+    ensure_runtime_file "config/vps_scripts.conf" || true
+}
+
+ensure_external_manifest() {
+    ensure_runtime_file "config/external_scripts.conf"
+}
+
+ensure_external_script() {
+    local script_name="$1"
+    local script_path="${EXTERNAL_SCRIPTS_DIR}/${script_name}"
+    local line=""
+    local url=""
+    local tmp=""
+
+    if [ -f "$script_path" ]; then
+        return 0
+    fi
+
+    if ! ensure_external_manifest; then
+        echo -e "${RED}[错误] 无法获取外部脚本清单。${RESET}"
+        return 1
+    fi
+
+    line=$(grep -E "^${script_name//./\\.}\\|" "${PROJECT_ROOT}/config/external_scripts.conf" | head -1)
+    url=$(echo "$line" | cut -d'|' -f2)
+    if [ -z "$url" ]; then
+        echo -e "${RED}[错误] 外部脚本未在清单中定义: ${script_name}${RESET}"
+        return 1
+    fi
+
+    mkdir -p "$EXTERNAL_SCRIPTS_DIR"
+    tmp="${script_path}.tmp"
+    if download_to_file "$url" "$tmp"; then
+        if [ -s "$tmp" ]; then
+            mv "$tmp" "$script_path"
+            chmod +x "$script_path"
+            return 0
+        fi
+    fi
+
+    rm -f "$tmp"
+    echo -e "${RED}[错误] 外部脚本下载失败: ${url}${RESET}"
+    return 1
 }
 
 # 2. 打印标准页头
@@ -62,17 +151,31 @@ print_header() {
 run_repo_script() {
     local script_rel_path="${1}"
     local full_url="${GITHUB_RAW_URL}/${script_rel_path}"
+    local local_script="${PROJECT_ROOT}/${script_rel_path}"
+    local return_code=0
 
     print_header
     echo -e "${YELLOW}正在加载模块...${RESET}"
     echo -e "${WHITE}> ${script_rel_path}${RESET}\n"
 
-    # 使用检测好的命令下载并执行
-    # 注意: 这里使用 bash <(...) 方式在内存中执行，不落地文件
-    bash <($DOWNLOAD_CMD "${full_url}")
+    # 本地克隆运行时优先使用本地文件；远程一键运行时自动缓存模块和公共依赖。
+    if [ -f "$local_script" ]; then
+        bash "$local_script"
+        return_code=$?
+    else
+        ensure_runtime_support_files
+        if ensure_runtime_file "$script_rel_path"; then
+            bash "$local_script"
+            return_code=$?
+        else
+            echo -e "\n${RED}[错误] 模块下载失败或远程文件不存在。${RESET}"
+            echo -e "URL: ${full_url}"
+            return 1
+        fi
+    fi
 
     # 捕获执行错误 (如果是 404 等网络错误)
-    if [ $? -ne 0 ]; then
+    if [ $return_code -ne 0 ]; then
         echo -e "\n${RED}[错误] 脚本执行失败或远程文件不存在。${RESET}"
         echo -e "URL: ${full_url}"
     fi
@@ -81,17 +184,24 @@ run_repo_script() {
     read -n 1 -s -r
 }
 
-# 4. 执行第三方远程命令
-# 参数: $1 = 完整的 Shell 命令
-run_remote_command() {
-    local command_to_run="${1}"
-    
+# 4. 执行本地外部脚本
+# 参数: $1 = external_scripts 下的脚本文件名
+run_external_script() {
+    local script_name="${1}"
+    local script_path="${EXTERNAL_SCRIPTS_DIR}/${script_name}"
+
     print_header
-    echo -e "${YELLOW}正在启动第三方工具...${RESET}"
-    echo -e "${WHITE}> ${command_to_run}${RESET}\n"
-    
-    eval "${command_to_run}"
-    
+    echo -e "${YELLOW}正在启动本地外部脚本...${RESET}"
+    echo -e "${WHITE}> external_scripts/${script_name}${RESET}\n"
+
+    if [ ! -f "$script_path" ]; then
+        echo -e "${YELLOW}本地外部脚本不存在，正在自动下载...${RESET}"
+        ensure_external_script "$script_name" || return 1
+        bash "$script_path"
+    else
+        bash "$script_path"
+    fi
+
     echo -e "\n${CYAN}[按任意键返回菜单]${RESET}"
     read -n 1 -s -r
 }
@@ -138,16 +248,9 @@ network_test_menu() {
         echo -e "${PURPLE}--- 网络测试 (Network Test) ---${RESET}"
         echo "1. 回程路由测试"
         echo "2. 带宽测速"
-        echo "3. CDN 延迟测试"
-        echo "4. IP 质量测试"
-        echo "5. 网络连通性测试"
-        echo "6. 综合质量测试"
-        echo "7. 网络安全扫描"
-        echo "8. 网络测速 (Speedtest)"
-        echo "9. 路由追踪 (Traceroute)"
-        echo "10. 端口扫描"
-        echo "11. 响应时间测试"
-        echo "12. 流媒体解锁测试"
+        echo "3. IP 质量测试"
+        echo "4. 综合质量测试"
+        echo "5. 应用解锁测试"
         echo "--------------------"
         echo "0. 返回主菜单"
         echo ""
@@ -156,16 +259,9 @@ network_test_menu() {
         case $choice in
             1) run_repo_script "scripts/network_test/backhaul_route_test.sh" ;;
             2) run_repo_script "scripts/network_test/bandwidth_test.sh" ;;
-            3) run_repo_script "scripts/network_test/cdn_latency_test.sh" ;;
-            4) run_repo_script "scripts/network_test/ip_quality_test.sh" ;;
-            5) run_repo_script "scripts/network_test/network_connectivity_test.sh" ;;
-            6) run_repo_script "scripts/network_test/network_quality_test.sh" ;;
-            7) run_repo_script "scripts/network_test/network_security_scan.sh" ;;
-            8) run_repo_script "scripts/network_test/network_speedtest.sh" ;;
-            9) run_repo_script "scripts/network_test/network_traceroute.sh" ;;
-            10) run_repo_script "scripts/network_test/port_scanner.sh" ;;
-            11) run_repo_script "scripts/network_test/response_time_test.sh" ;;
-            12) run_repo_script "scripts/network_test/streaming_unlock_test.sh" ;;
+            3) run_repo_script "scripts/network_test/ip_quality_test.sh" ;;
+            4) run_repo_script "scripts/network_test/network_quality_test.sh" ;;
+            5) run_repo_script "scripts/network_test/app_unlock_test.sh" ;;
             0) return ;;
             *) echo -e "${RED}无效输入!${RESET}" && sleep 1 ;;
         esac
@@ -197,39 +293,6 @@ performance_test_menu() {
     done
 }
 
-# 服务安装菜单
-service_install_menu() {
-    while true; do
-        print_header
-        echo -e "${PURPLE}--- 服务安装 (Service Install) ---${RESET}"
-        echo "1. 安装 Docker"
-        echo "2. 安装 LNMP 环境"
-        echo "3. 安装 Node.js"
-        echo "4. 安装 Python"
-        echo "5. 安装 Redis"
-        echo "6. 安装 宝塔面板"
-        echo "7. 安装 1Panel 面板"
-        echo "8. 安装 Wordpress"
-        echo "--------------------"
-        echo "0. 返回主菜单"
-        echo ""
-        read -p "请输入选项: " choice
-
-        case $choice in
-            1) run_repo_script "scripts/service_install/install_docker.sh" ;;
-            2) run_repo_script "scripts/service_install/install_lnmp.sh" ;;
-            3) run_repo_script "scripts/service_install/install_nodejs.sh" ;;
-            4) run_repo_script "scripts/service_install/install_python.sh" ;;
-            5) run_repo_script "scripts/service_install/install_redis.sh" ;;
-            6) run_repo_script "scripts/service_install/install_bt_panel.sh" ;;
-            7) run_repo_script "scripts/service_install/install_1panel.sh" ;;
-            8) run_repo_script "scripts/service_install/install_wordpress.sh" ;;
-            0) return ;;
-            *) echo -e "${RED}无效输入!${RESET}" && sleep 1 ;;
-        esac
-    done
-}
-
 # 优秀脚本菜单 (第三方)
 good_scripts_menu() {
     while true; do
@@ -240,7 +303,7 @@ good_scripts_menu() {
         echo "3. XY-网络质量检测"
         echo "4. NodeLoc 聚合测试"
         echo "5. 融合怪 (SpiritlHL)"
-        echo "6. 流媒体解锁测试"
+        echo "6. 应用解锁测试"
         echo "7. 响应时间测试"
         echo "8. SSH 工具箱"
         echo "9. Jcnf 常用工具包"
@@ -255,20 +318,20 @@ good_scripts_menu() {
         read -p "请输入选项 [0-14]: " choice
 
         case $choice in
-            1) run_remote_command "wget -qO- yabs.sh | bash" ;;
-            2) run_remote_command "bash <(curl -Ls IP.Check.Place)" ;;
-            3) run_remote_command "bash <(curl -Ls Net.Check.Place)" ;;
-            4) run_remote_command "curl -sSL abc.sd | bash" ;;
-            5) run_remote_command "curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh" ;;
-            6) run_remote_command "bash <(curl -L -s media.ispvps.com)" ;;
-            7) run_remote_command "bash <(curl -sL https://nodebench.mereith.com/scripts/curltime.sh)" ;;
-            8) run_remote_command "curl -fsSL https://raw.githubusercontent.com/eooce/ssh_tool/main/ssh_tool.sh -o ssh_tool.sh && chmod +x ssh_tool.sh && ./ssh_tool.sh" ;;
-            9) run_remote_command "wget -O jcnfbox.sh https://raw.githubusercontent.com/Netflixxp/jcnf-box/main/jcnfbox.sh && chmod +x jcnfbox.sh && clear && ./jcnfbox.sh" ;;
-            10) run_remote_command "bash <(curl -sL kejilion.sh)" ;;
-            11) run_remote_command "wget -O box.sh https://raw.githubusercontent.com/BlueSkyXN/SKY-BOX/main/box.sh && chmod +x box.sh && clear && ./box.sh" ;;
-            12) run_remote_command "bash <(curl -sL https://raw.githubusercontent.com/i-abc/Speedtest/main/speedtest.sh)" ;;
-            13) run_remote_command "wget -N --no-check-certificate https://raw.githubusercontent.com/Chennhaoo/Shell_Bash/master/AutoTrace.sh && chmod +x AutoTrace.sh && bash AutoTrace.sh" ;;
-            14) run_remote_command "wget --no-check-certificate -O memoryCheck.sh https://raw.githubusercontent.com/uselibrary/memoryCheck/main/memoryCheck.sh && chmod +x memoryCheck.sh && bash memoryCheck.sh" ;;
+            1) run_external_script "yabs.sh" ;;
+            2) run_external_script "ip_check_place.sh" ;;
+            3) run_external_script "net_check_place.sh" ;;
+            4) run_external_script "nodeloc_aggregate.sh" ;;
+            5) run_external_script "ecs.sh" ;;
+            6) run_external_script "media_unlock_test.sh" ;;
+            7) run_external_script "curltime.sh" ;;
+            8) run_external_script "ssh_tool.sh" ;;
+            9) run_external_script "jcnfbox.sh" ;;
+            10) run_external_script "kejilion.sh" ;;
+            11) run_external_script "box.sh" ;;
+            12) run_external_script "speedtest.sh" ;;
+            13) run_external_script "AutoTrace.sh" ;;
+            14) run_external_script "memoryCheck.sh" ;;
             0) return ;;
             *) echo -e "${RED}无效输入!${RESET}" && sleep 1 ;;
         esac
@@ -291,11 +354,11 @@ ladder_tools_menu() {
         read -p "请输入选项: " choice
 
         case $choice in
-            1) run_remote_command "bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)" ;;
-            2) run_remote_command "bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/sing-box/main/sing-box.sh)" ;;
-            3) run_remote_command "bash <(curl -Ls https://gitlab.com/rwkgyg/x-ui-yg/raw/main/install.sh)" ;;
-            4) run_remote_command "bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)" ;;
-            5) run_remote_command "bash <(curl -Ls https://raw.githubusercontent.com/xeefei/3x-ui/master/install.sh)" ;;
+            1) run_external_script "sing-box-yg.sh" ;;
+            2) run_external_script "fscarmen-sing-box.sh" ;;
+            3) run_external_script "x-ui-yg.sh" ;;
+            4) run_external_script "3x-ui.sh" ;;
+            5) run_external_script "3x-ui-optimized.sh" ;;
             0) return ;;
             *) echo -e "${RED}无效输入!${RESET}" && sleep 1 ;;
         esac
@@ -322,7 +385,7 @@ other_tools_menu() {
             2) run_repo_script "scripts/other_tools/fail2ban.sh" ;;
             3) run_repo_script "scripts/other_tools/nezha.sh" ;;
             4) run_repo_script "scripts/other_tools/swap.sh" ;;
-            5) run_remote_command "bash <(curl -s https://raw.githubusercontent.com/everett7623/Nezha-cleaner/main/nezha-agent-cleaner.sh)" ;;
+            5) run_external_script "nezha-agent-cleaner.sh" ;;
             0) return ;;
             *) echo -e "${RED}无效输入!${RESET}" && sleep 1 ;;
         esac
@@ -337,6 +400,36 @@ update_scripts_menu() {
     echo -e "每次运行此脚本时，都会自动获取 GitHub 上最新的版本。"
     echo -e "因此，您不需要执行更新操作，只需重新运行启动命令即可。"
     echo -e "\n${WHITE}bash <(curl -sL ${GITHUB_RAW_URL}/vps.sh)${RESET}\n"
+    echo -e "\n${CYAN}[按任意键返回]${RESET}"
+    read -n 1 -s -r
+}
+
+# 更新外部脚本菜单
+update_external_scripts_menu() {
+    local updater="${PROJECT_ROOT}/scripts/update_scripts/update_external_scripts.sh"
+
+    print_header
+    echo -e "${PURPLE}--- 更新外部脚本 ---${RESET}"
+
+    ensure_external_manifest || {
+        echo -e "${RED}[错误] 无法获取外部脚本清单。${RESET}"
+        echo -e "\n${CYAN}[按任意键返回]${RESET}"
+        read -n 1 -s -r
+        return 1
+    }
+
+    if [ ! -f "$updater" ]; then
+        echo -e "${YELLOW}更新器不存在，正在自动下载...${RESET}"
+        if ! ensure_runtime_file "scripts/update_scripts/update_external_scripts.sh"; then
+            echo -e "${RED}[错误] 更新脚本下载失败: ${updater}${RESET}"
+            echo -e "\n${CYAN}[按任意键返回]${RESET}"
+            read -n 1 -s -r
+            return 1
+        fi
+    fi
+
+    bash "$updater"
+
     echo -e "\n${CYAN}[按任意键返回]${RESET}"
     read -n 1 -s -r
 }
@@ -373,20 +466,21 @@ uninstall_scripts_menu() {
 main_menu() {
     # 1. 检查运行环境
     check_environment
+    mkdir -p "$PROJECT_ROOT" "$EXTERNAL_SCRIPTS_DIR"
 
     # 2. 进入主循环
     while true; do
         print_header
         echo -e "${BOLD}请选择功能类别:${RESET}"
         echo -e " 1. ${CYAN}系统工具${RESET}       - 系统信息、更新、清理、优化"
-        echo -e " 2. ${CYAN}网络测试${RESET}       - 路由、带宽、IP质量、流媒体检测"
+        echo -e " 2. ${CYAN}网络测试${RESET}       - 路由、带宽、IP质量、应用解锁"
         echo -e " 3. ${CYAN}性能测试${RESET}       - CPU、磁盘、内存基准测试"
-        echo -e " 4. ${CYAN}服务安装${RESET}       - Docker、LNMP、面板等"
-        echo -e " 5. ${CYAN}优秀脚本${RESET}       - 集成社区热门第三方脚本"
-        echo -e " 6. ${CYAN}梯子工具${RESET}       - 代理工具一键安装"
-        echo -e " 7. ${CYAN}其他工具${RESET}       - BBR、Fail2ban、监控等"
-        echo -e " 8. ${PURPLE}更新说明${RESET}       - 获取最新版本说明"
-        echo -e " 9. ${RED}卸载清理${RESET}       - 清理安装的服务残留"
+        echo -e " 4. ${CYAN}优秀脚本${RESET}       - 集成社区热门第三方脚本"
+        echo -e " 5. ${CYAN}梯子工具${RESET}       - 代理工具一键安装"
+        echo -e " 6. ${CYAN}其他工具${RESET}       - BBR、Fail2ban、监控等"
+        echo -e " 7. ${PURPLE}更新说明${RESET}       - 获取最新版本说明"
+        echo -e " 8. ${RED}卸载清理${RESET}       - 清理安装的服务残留"
+        echo -e " 9. ${PURPLE}更新外部脚本${RESET}   - 备份并更新 external_scripts"
         echo "--------------------------------------------------------"
         echo -e " 0. ${WHITE}退出脚本${RESET}"
         echo ""
@@ -396,12 +490,12 @@ main_menu() {
             1) system_tools_menu ;;
             2) network_test_menu ;;
             3) performance_test_menu ;;
-            4) service_install_menu ;;
-            5) good_scripts_menu ;;
-            6) ladder_tools_menu ;;
-            7) other_tools_menu ;;
-            8) update_scripts_menu ;;
-            9) uninstall_scripts_menu ;;
+            4) good_scripts_menu ;;
+            5) ladder_tools_menu ;;
+            6) other_tools_menu ;;
+            7) update_scripts_menu ;;
+            8) uninstall_scripts_menu ;;
+            9) update_external_scripts_menu ;;
             0)
                 echo -e "\n${GREEN}感谢使用, 再见!${RESET}"
                 exit 0
