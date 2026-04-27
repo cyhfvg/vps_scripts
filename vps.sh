@@ -75,18 +75,17 @@ download_repo_file() {
 ensure_runtime_file() {
     local rel_path="$1"
     local target="${PROJECT_ROOT}/${rel_path}"
-
-    if [ -f "$target" ]; then
-        return 0
-    fi
+    local tmp="${target}.tmp.$$"
 
     mkdir -p "$(dirname "$target")"
-    if download_repo_file "$rel_path" "$target"; then
+    if download_repo_file "$rel_path" "$tmp"; then
+        mv "$tmp" "$target"
         chmod +x "$target" 2>/dev/null || true
         return 0
     fi
 
-    rm -f "$target"
+    rm -f "$tmp"
+    [ -f "$target" ] && return 0
     return 1
 }
 

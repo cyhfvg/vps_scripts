@@ -42,6 +42,12 @@ curl_code() {
     curl -sS -L --max-time 10 -o /dev/null -w "%{http_code}" "$@" "$url" 2>/dev/null
 }
 
+curl_text() {
+    local url="$1"
+    shift
+    curl -sS -L --max-time 10 -H "Accept-Encoding: identity" "$@" "$url" 2>&1 | tr -d '\000'
+}
+
 append_result() {
     local service="$1"
     local status="$2"
@@ -397,15 +403,18 @@ test_bbc_iplayer() {
     
     local result="不支持"
     
-    # 测试BBC iPlayer
-    local bbc_response=$(curl -s --max-time 10 \
-                        -H "User-Agent: $UA_BROWSER" \
-                        "https://www.bbc.co.uk/iplayer" 2>&1)
+    # BBC 的首页经常返回脚本化页面，使用媒体选择接口判断地区限制更稳定。
+    local bbc_response
+    bbc_response=$(curl_text "https://open.live.bbc.co.uk/mediaselector/6/select/version/2.0/mediaset/pc/vpid/bbc_one_london/format/json/jsfunc/JS_callbacks0" \
+                   -H "User-Agent: $UA_BROWSER")
     
-    if echo "$bbc_response" | grep -q "available in the UK"; then
+    if [ -z "$bbc_response" ] || echo "$bbc_response" | grep -qiE "^curl:|Could not resolve|Connection timed out|Failed to connect"; then
+        result="请求失败"
+        print_msg "$RED" "BBC iPlayer: 请求失败 ✗"
+    elif echo "$bbc_response" | grep -qi "geolocation"; then
         result="不支持(仅限英国)"
         print_msg "$RED" "BBC iPlayer: 不支持 (仅限英国) ✗"
-    elif echo "$bbc_response" | grep -q "bbcAccount"; then
+    elif echo "$bbc_response" | grep -qiE "media|connection|supplier|bbc_one_london|JS_callbacks0"; then
         result="解锁"
         print_msg "$GREEN" "BBC iPlayer: 解锁 ✓ (英国)"
     else
@@ -480,9 +489,9 @@ test_gaming_platforms() {
     
     # Steam测试
     echo -e "${CYAN}测试 Steam...${NC}"
-    local steam_response=$(curl -s --max-time 10 \
-                          -H "User-Agent: $UA_BROWSER" \
-                          "https://store.steampowered.com/api/v1/country" 2>&1)
+    local steam_response
+    steam_response=$(curl_text "https://store.steampowered.com/api/v1/country" \
+                     -H "User-Agent: $UA_BROWSER")
     
     if echo "$steam_response" | grep -q "country_code"; then
         local steam_region=$(echo "$steam_response" | grep -oP '"country_code":"\K[^"]+')
